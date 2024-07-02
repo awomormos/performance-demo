@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: performance-demo
+  labels:
+    name: performance-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-demo
+  namespace: performance-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: performance-demo
+  template:
+    metadata:
+      labels:
+        app: performance-demo
+    spec:
+      containers:
+        - name: performance-demo
+          image: localhost:5001/stammtisch-performance-demo:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-demo-service
+  namespace: performance-demo
+spec:
+  selector:
+    app: performance-demo
+  ports:
+    - port: 8081
+      protocol: TCP
+      targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: performance-demo-ingress
+  namespace: performance-demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: performance-demo-service
+                port:
+                  number: 8081
